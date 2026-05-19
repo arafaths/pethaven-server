@@ -18,6 +18,16 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
+    const db = client.db('pethaven');
+    const petCollection = db.collection('pets');
+
+    // Get Pets Collection
+    app.get('/all-pets', async (req, res) => {
+      const result = await petCollection.find().toArray();
+      res.send(result);
+    })
+
+
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection

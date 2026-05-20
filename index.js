@@ -1,10 +1,14 @@
 const express = require('express');
 const dotenv = require('dotenv');
-const app = express();
+const cors = require('cors');
 dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
 const port = process.env.PORT;
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = process.env.MONGODB_URI;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -26,6 +30,20 @@ async function run() {
       const result = await petCollection.find().toArray();
       res.send(result);
     })
+
+    // Get Single Pet
+    app.get('/all-pets/:id', async (req, res) => {
+      const { id } = req.params;
+      const result = await petCollection.findOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
+
+    // Post Pet
+    app.post('/all-pets', async (req, res) => {
+      const petData = req.body;
+      const result = await petCollection.insertOne(petData);
+      res.send(result);
+    });
 
 
     // Connect the client to the server	(optional starting in v4.7)

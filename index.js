@@ -24,6 +24,7 @@ async function run() {
   try {
     const db = client.db('pethaven');
     const petCollection = db.collection('pets');
+    const adoptionCollection = db.collection('adopt');
 
     // Get Pets Collection
     app.get('/all-pets', async (req, res) => {
@@ -88,6 +89,57 @@ async function run() {
       res.send(result);
     });
 
+    // Post Pet Adopt collection
+    app.post('/adopt-request', async (req, res) => {
+      try {
+        const adoptData = req.body;
+
+        // validation
+        if (!adoptData?.petId || !adoptData?.requesterEmail) {
+          return res.status(400).send({
+            success: false,
+            message: 'Invalid request data',
+          });
+        }
+
+        const existing = await adoptionCollection.findOne({
+          petId: adoptData.petId,
+          requesterEmail: adoptData.requesterEmail,
+        });
+
+        if (existing) {
+          return res.send({
+            success: false,
+            message: 'Already requested',
+          });
+        }
+
+        const result = await adoptionCollection.insertOne({
+          ...adoptData,
+          status: 'pending',
+          createdAt: new Date(),
+        });
+
+        res.send({
+          success: true,
+          message: 'Adoption request created',
+          result,
+        });
+      } catch (error) {
+        res.status(500).send({ success: false, error });
+      }
+    });
+
+    // Get Adopt requst
+    app.get('/my-requests', async (req, res) => {
+      const email = req.query.email;
+
+      const result = await adoptionCollection
+        .find({ requesterEmail: email })
+        .toArray();
+
+      res.send(result);
+    });
 
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();

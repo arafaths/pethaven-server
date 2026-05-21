@@ -27,9 +27,52 @@ async function run() {
 
     // Get Pets Collection
     app.get('/all-pets', async (req, res) => {
-      const result = await petCollection.find().toArray();
+      const search = req.query.search || '';
+      const species = req.query.species || '';
+      const sort = req.query.sort || '';
+
+      const query = {};
+
+      // Search by pet name
+      if (search) {
+        query.petName = {
+          $regex: search,
+          $options: 'i',
+        };
+      }
+
+      // Filter by species
+      if (species) {
+        query.species = {
+          $in: [species],
+        };
+      }
+
+      // Sort options
+      let sortOption = {};
+
+      if (sort === 'low') {
+        sortOption = {
+          adoptionFee: 1,
+        };
+      }
+
+      if (sort === 'high') {
+        sortOption = {
+          adoptionFee: -1,
+        };
+      }
+
+      if (sort === 'newest') {
+        sortOption = {
+          createdAt: -1,
+        };
+      }
+
+      const result = await petCollection.find(query).sort(sortOption).toArray();
+
       res.send(result);
-    })
+    });
 
     // Get Single Pet
     app.get('/all-pets/:id', async (req, res) => {

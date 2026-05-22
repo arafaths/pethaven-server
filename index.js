@@ -141,7 +141,7 @@ async function run() {
       res.send(result);
     });
 
-    // Get Adopt requst
+    // Delet Adopt requst
     app.delete('/my-requests/:id', async (req, res) => {
       const id = req.params.id;
 
@@ -155,6 +155,118 @@ async function run() {
         success: true,
         deletedCount: result.deletedCount,
       });
+    });
+
+    // my listed
+    app.get('/my-pets', async (req, res) => {
+      const email = req.query.email;
+
+      const result = await petCollection.find({ ownerEmail: email }).toArray();
+
+      res.send(result);
+    });
+
+    // patch pet updat
+    app.patch('/all-pets/:id', async (req, res) => {
+      const id = req.params.id;
+      const updatedData = req.body;
+
+      const result = await petCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: updatedData,
+        },
+      );
+
+      res.send(result);
+    });
+
+    // Delete pet by ID
+    app.delete('/all-pets/:id', async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        const result = await petCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).send({
+            success: false,
+            message: 'Pet not found',
+          });
+        }
+
+        res.send({
+          success: true,
+          message: 'Pet deleted successfully',
+          deletedCount: result.deletedCount,
+        });
+      } catch (error) {
+        res.status(500).send({
+          success: false,
+          message: 'Server error',
+          error: error.message,
+        });
+      }
+    });
+
+    // Get requests for my pets
+    app.get('/pet-requests', async (req, res) => {
+      const email = req.query.email;
+
+      const result = await adoptionCollection
+        .find({ ownerEmail: email })
+        .toArray();
+
+      res.send(result);
+    });
+
+    // single pet requst
+    app.get('/pet-requests/:id', async (req, res) => {
+      const id = req.params.id;
+
+      const result = await adoptionCollection.find({ petId: id }).toArray();
+
+      res.send(result);
+    });
+
+    // Adopt requst reject and aprov
+    app.patch('/adoption-request/:id', async (req, res) => {
+      const id = req.params.id;
+      const { status, petId } = req.body;
+
+      const requestResult = await adoptionCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: { status },
+        },
+      );
+
+      if (status === 'approved') {
+        await petsCollection.updateOne(
+          { _id: new ObjectId(petId) },
+          {
+            $set: {
+              status: 'adopted',
+            },
+          },
+        );
+
+        await adoptionCollection.updateMany(
+          {
+            petId,
+            _id: { $ne: new ObjectId(id) },
+          },
+          {
+            $set: {
+              status: 'rejected',
+            },
+          },
+        );
+      }
+
+      res.send(requestResult);
     });
 
     // Connect the client to the server	(optional starting in v4.7)

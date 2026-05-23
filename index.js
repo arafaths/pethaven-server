@@ -244,7 +244,7 @@ async function run() {
       );
 
       if (status === 'approved') {
-        await petsCollection.updateOne(
+        await petCollection.updateOne(
           { _id: new ObjectId(petId) },
           {
             $set: {
@@ -266,7 +266,11 @@ async function run() {
         );
       }
 
-      res.send(requestResult);
+      // important
+      res.send({
+        success: true,
+        modifiedCount: requestResult.modifiedCount,
+      });
     });
 
     // Connect the client to the server	(optional starting in v4.7)

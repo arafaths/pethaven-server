@@ -9,6 +9,7 @@ app.use(express.json());
 const port = process.env.PORT;
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 const uri = process.env.MONGODB_URI;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -19,6 +20,33 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+const JWKS = createRemoteJWKSet(new URL(`${process.env.URL}/api/auth/jwks`));
+
+const verifyToken = async (req, res, next) => {
+  const header = req.headers.authorization;
+  if (!header) {
+    return res.status(401).send({
+      message: 'Unauthorized Access',
+    });
+  }
+  const token = header.split(" ")[1]
+  if (!token) {
+    return res.status(401).send({
+      message: 'Unauthorized Access',
+    });
+  }
+  try {
+    const { payload } = await jwtVerify(token, JWKS)
+  console.log(payload)
+  next();
+  }
+  catch{
+    return res.status(401).send({
+      message: 'Forbiden',
+    });
+  }
+};
 
 async function run() {
   try {
@@ -76,7 +104,7 @@ async function run() {
     });
 
     // Get Single Pet
-    app.get('/all-pets/:id', async (req, res) => {
+    app.get('/all-pets/:id', verifyToken, async (req, res) => {
       const { id } = req.params;
       const result = await petCollection.findOne({ _id: new ObjectId(id) });
       res.send(result);
@@ -274,9 +302,9 @@ async function run() {
     });
 
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     // Send a ping to confirm a successful connection
-    await client.db('admin').command({ ping: 1 });
+    // await client.db('admin').command({ ping: 1 });
     console.log(
       'Pinged your deployment. You successfully connected to MongoDB!',
     );
